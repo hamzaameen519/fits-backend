@@ -1,5 +1,5 @@
 module.exports = {
-  APP_URL: "http://localhost:5000",
+  APP_URL: "",
   DEBUG_MODE: true,
   DB_URL:
     "",
