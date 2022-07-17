@@ -1,0 +1,14 @@
+export { default as User } from "./user";
+export { default as Product } from "./product";
+export { default as Category } from "./category";
+export { default as Order } from "./order";
+export { default as Transaction } from "./transaction";
+export { default as Challenge } from "./challenge";
+export { default as Personal } from "./personal";
+export { default as Profession } from "./profession";
+export { default as Fitness } from "./fitness";
+export { default as Classes } from "./classes";
+export { default as Session } from "./session";
+export { default as Video } from "./video";
+export { default as Review } from "./review";
+export { default as Service } from "./service";
