@@ -18,6 +18,9 @@ const app = express();
 global.appRoot = path.resolve(__dirname);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+app.get("/user", (req, res) => {
+  res.status(200).json("welcome back fits");
+});
 app.use(cors());
 app.use(welcomeRoutes);
 app.use("/api", routes);
