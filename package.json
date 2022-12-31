@@ -10,7 +10,7 @@
   "author": "Mirza Nouman",
   "license": "MIT",
   "engines": {
-    "node": "16.10.0"
+    "node": "18.12.1"
   },
   "dependencies": {
     "@sendgrid/mail": "^7.6.1",
