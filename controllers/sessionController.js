@@ -1,4 +1,6 @@
 import { Personal, Profession, Session, User } from "../models";
+import { HTTP_STATUS } from "../utils/constants";
+import { errorResponse } from "../utils/response";
 import onlineSchema from "../validators/sessionValidators/online";
 import physicalSchema from "../validators/sessionValidators/physicalSchema";
 import recordedSchema from "../validators/sessionValidators/recordedSchema";
@@ -15,7 +17,6 @@ const sessionController = {
       session_user,
       profession_info,
       personal_info;
-    let user;
     let user_ids;
     try {
       classes = await Session.find()
@@ -57,7 +58,6 @@ const sessionController = {
   },
   // create session
   async store(req, res, next) {
-    console.log("req.body", req.body);
     const {
       session_title,
       class_title,
@@ -217,31 +217,23 @@ const sessionController = {
     }
   },
   async destroy(req, res, next) {
-    let document,
-      success,
-      message = "",
-      statusCode,
-      session;
+    let document, statusCode;
 
     try {
-      document = await Session.findByIdAndDelete(
-        { _id: req.params.id },
-        { new: true }
-      );
-      if (session) {
-        (message = "delete session successfully"),
-          (statusCode = 200),
-          (success = true);
-      } else {
-        message = "not create";
-        success = false;
-        statusCode = 404;
+      document = await Session.findByIdAndDelete({ _id: req.params.id });
+
+      if (!document) {
+        return res.status(HTTP_STATUS.NOT_ACCEPTABLE).json({
+          statusCode: HTTP_STATUS.NOT_ACCEPTABLE,
+          message: "There Is No Session Exists!",
+          deleted: false,
+        });
       }
+      statusCode = HTTP_STATUS.OK;
       document = {
         statusCode,
-        success,
-        message,
-        data: session,
+        deleted: true,
+        message: "Session Deleted Successfully!",
       };
       res.status(statusCode).json(document);
     } catch (err) {
@@ -250,19 +242,30 @@ const sessionController = {
   },
   async show(req, res, next) {
     let document,
+      personal_info,
+      profession_info,
       success,
       message = "",
       statusCode,
       session;
 
     try {
-      session = await Session.findById({ _id: req.params.id });
+      session = await Session.findById({ _id: req.params.id })
+        .populate("user")
+        .select("-updatedAt -__v");
       if (session) {
-        (message = "get session successfully"),
-          (statusCode = 200),
-          (success = true);
+        personal_info = await Personal.findOne({ user: session.user }).select(
+          "-updatedAt -__v"
+        );
+        profession_info = await Profession.findOne({
+          user: session.user,
+        }).select("-updatedAt -__v");
+
+        message = "get session successfully";
+        statusCode = 200;
+        success = true;
       } else {
-        message = "not create";
+        message = "not found";
         success = false;
         statusCode = 404;
       }
@@ -270,7 +273,57 @@ const sessionController = {
         statusCode,
         success,
         message,
-        data: session,
+        data: {
+          session,
+          personal_info,
+          profession_info,
+        },
+      };
+      res.status(statusCode).json(document);
+    } catch (err) {
+      return next(err);
+    }
+  },
+
+  // get trainer booked session
+  async getByTrainerId(req, res, next) {
+    let document,
+      personal_info,
+      profession_info,
+      success,
+      message = "",
+      statusCode,
+      session;
+
+    try {
+      session = await Session.find({ user: req.params.id })
+        .populate("user")
+        .select("-updatedAt -__v");
+      if (session) {
+        personal_info = await Personal.findOne({ user: req.params.id }).select(
+          "-updatedAt -__v"
+        );
+        profession_info = await Profession.findOne({
+          user: req.params.id,
+        }).select("-updatedAt -__v");
+
+        message = "get session successfully";
+        statusCode = 200;
+        success = true;
+      } else {
+        message = "not found";
+        success = false;
+        statusCode = 404;
+      }
+      document = {
+        statusCode,
+        success,
+        message,
+        data: {
+          session,
+          personal_info,
+          profession_info,
+        },
       };
       res.status(statusCode).json(document);
     } catch (err) {

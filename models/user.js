@@ -1,19 +1,8 @@
 import mongoose from "mongoose";
 
 const Schema = mongoose.Schema;
-// const FitnessGoalSchema = mongoose.Schema({
-//   type: mongoose.Schema.Types.ObjectId,
-//   ref: "Fitness.fitness_goal",
-// });
-// const ServicesSchema = mongoose.Schema({
-//   type: mongoose.Schema.Types.ObjectId,
-//   ref: "Fitness.services_offered",
-// });
-// const FitnessLevelSchema = mongoose.Schema({
-//   type: mongoose.Schema.Types.ObjectId,
-//   ref: "Fitness.fitness_level",
-// });
-const FitnessLevelSchema = mongoose.Schema({
+
+const ServicesOfferedSchema = mongoose.Schema({
   value: { type: String },
   key: { type: String },
 });
@@ -30,14 +19,21 @@ const userSchema = new Schema(
       value: { type: String },
       key: { type: String },
     },
-    // services_offered: [FitnessLevelSchema],
+    services_offered: {
+      value: { type: String },
+      key: { type: String },
+    },
     isVerified: { type: Boolean, default: false },
+    amount: { type: Number, default: 0 },
     emailVerified: { type: Boolean, default: false },
     reset_password: { type: Boolean, default: false },
     trainerVerified: { type: String, default: "pending" },
     accountVerified: { type: String, default: "pending" }, //  suspend || active || deleted
     numReviews: { type: Number, default: 0 },
     averageRating: { type: Number, default: 0 },
+    profession: { type: mongoose.Schema.Types.ObjectId, ref: "Profession" },
+    personal: { type: mongoose.Schema.Types.ObjectId, ref: "Personal" },
+    cardCreated: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

@@ -1,4 +1,4 @@
-import { Personal } from "../models";
+import { Personal, User } from "../models";
 import profileSchema from "../validators/profileSchema";
 
 const personalController = {
@@ -9,7 +9,16 @@ const personalController = {
     if (error) {
       return next(error);
     }
-    const { name, date_of_birth, country, state, city, gender } = req.body;
+    const {
+      name,
+      date_of_birth,
+      country,
+      state,
+      city,
+      gender,
+      profileImage,
+      phoneNumber,
+    } = req.body;
     let document,
       success,
       message = "",
@@ -17,6 +26,19 @@ const personalController = {
       personal;
 
     try {
+      const checkPersonal = await Personal.findOne({ user: req.user._id });
+      if (checkPersonal) {
+        success = false;
+        statusCode = 409;
+        message = "personal info  already exist";
+        document = {
+          statusCode,
+          success,
+          message,
+          data: checkPersonal,
+        };
+        res.status(statusCode).json(document);
+      }
       personal = await Personal.create({
         name,
         date_of_birth,
@@ -25,8 +47,17 @@ const personalController = {
         city,
         gender,
         user: req.user._id,
+        profileImage,
+        phoneNumber,
       });
       if (personal) {
+        await User.findByIdAndUpdate(
+          { _id: req.user._id },
+          {
+            personal: personal._id,
+          },
+          { new: true }
+        );
         success = true;
         statusCode = 201;
         message = "personal info create successfully";
@@ -107,16 +138,22 @@ const personalController = {
 
   //update profile info
   async update(req, res, next) {
-    // Multipart from data
-    // handleMultipartData(req, res, async (err) => {
-
     // validation
-    const { error } = profileSchema.validate(req.body);
-    if (error) {
-      return next(error);
-    }
-    const { name, date_of_birth, country, state, city, gender } = req.body;
-    console.log("req.body", req.body);
+    // const { error } = profileSchema.validate(req.body);
+    // if (error) {
+    //   return next(error);
+    // }
+    const {
+      name,
+      date_of_birth,
+      country,
+      state,
+      city,
+      gender,
+      profileImage,
+      user,
+      phoneNumber,
+    } = req.body;
     let document,
       success,
       message = "",
@@ -124,7 +161,13 @@ const personalController = {
       personal;
 
     try {
-      personal = await Personal.findOneAndUpdate(
+      let userType;
+      if (req.user.role === "admin") {
+        userType = user;
+      } else {
+        userType = req.user._id;
+      }
+      personal = await Personal.findByIdAndUpdate(
         { _id: req.params.id },
         {
           name,
@@ -133,7 +176,9 @@ const personalController = {
           state,
           city,
           gender,
-          user: req.user._id,
+          user: userType,
+          profileImage,
+          phoneNumber,
         },
         { new: true }
       );
@@ -146,17 +191,16 @@ const personalController = {
         success = false;
         statusCode = 404;
       }
+      document = {
+        statusCode,
+        success,
+        message,
+        data: personal,
+      };
+      res.status(statusCode).json(document);
     } catch (err) {
       return next(err);
     }
-    document = {
-      statusCode,
-      success,
-      message,
-      data: personal,
-    };
-
-    res.status(statusCode).json(document);
   },
 };
 

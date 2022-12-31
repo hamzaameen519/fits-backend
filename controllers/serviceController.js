@@ -156,7 +156,7 @@ const serviceController = {
       service;
     // pagination mongoose pagination
     try {
-      service = await Service.findOne({ _id: req.params.id }).select(
+      service = await Service.find({ user: req.params.id }).select(
         "-password -updatedAt -__v "
       );
       if (service) {

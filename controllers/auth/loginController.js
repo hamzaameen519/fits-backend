@@ -1,9 +1,10 @@
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import CustomErrorHandler from "../../services/CustomErrorHandler";
-import { User } from "../../models";
+import { Personal, Profession, User } from "../../models";
 import JwtServices from "../../services/JwtService";
-import { REFRESH_SECRET } from "../../config";
+import { isObjectEmpty } from "../../utils/utility";
+import { ROLE_TYPES } from "../../utils/constants";
 
 const loginController = {
   async login(req, res, next) {
@@ -11,24 +12,72 @@ const loginController = {
     // Validation
     const loginSchema = Joi.object({
       email: Joi.string().email().required(),
-      password: Joi.string()
-        .pattern(new RegExp("^[a-zA-Z0-9]{3,30}$"))
-        .required(),
+      password: Joi.string().required().min(8),
     });
     const { error } = loginSchema.validate(req.body);
 
     if (error) {
       return next(error);
     }
-
     // check if user exist in database already
-    let user, result;
+    let user, result, professionResult, personal, profile_status;
+    let personal_step_1 = false;
+    // for trainer profiles steps
+    let professional_step_2 = false;
+    let service_offered_step_3 = false;
+    // for trainee profiles steps
+    let fitness_level_step_2 = false;
+    let fitness_goal_step_3 = false;
+    let profile_completed = false;
+
     try {
-      user = await User.findOne({ email: req.body.email })
-        .select("-updatedAt -__v")
-        .populate("challengeId");
+      user = await User.findOne({ email: req.body.email }).select(
+        "-updatedAt -__v"
+      );
       if (!user) {
         return next(CustomErrorHandler.wrongCredentials());
+      }
+      personal = await Personal.findOne({ user: user._id });
+      if (user.role === ROLE_TYPES.TRAINER) {
+        if (personal) {
+          personal_step_1 = true;
+        }
+        professionResult = await Profession.findOne({ user: user._id });
+        if (professionResult) {
+          professional_step_2 = true;
+        }
+
+        if (!isObjectEmpty(user.services_offered.toObject())) {
+          service_offered_step_3 = true;
+        }
+        profile_status = {
+          personal_step_1,
+          professional_step_2,
+          service_offered_step_3,
+        };
+      } else if (user.role === ROLE_TYPES.TRAINEE) {
+        if (personal) {
+          personal_step_1 = true;
+        }
+
+        if (!isObjectEmpty(user.fitness_level.toObject())) {
+          fitness_level_step_2 = true;
+        }
+
+        if (!isObjectEmpty(user.fitness_goal.toObject())) {
+          fitness_goal_step_3 = true;
+        }
+        profile_status = {
+          personal_step_1,
+          fitness_level_step_2,
+          fitness_goal_step_3,
+        };
+      }
+      if (personal_step_1 && fitness_level_step_2 && fitness_goal_step_3) {
+        profile_completed = true;
+      }
+      if (personal_step_1 && professional_step_2 && service_offered_step_3) {
+        profile_completed = true;
       }
     } catch (err) {
       return next(err);
@@ -40,6 +89,7 @@ const loginController = {
     if (!match) {
       return next(CustomErrorHandler.wrongCredentials());
     }
+    console.log("emailVerified:", user.emailVerified);
     //emailVerified
     if (!user.emailVerified) {
       return next(
@@ -54,10 +104,12 @@ const loginController = {
         message: "success",
         login: true,
         access_token,
+        profile_completed,
+        profile_status,
         data: user,
       };
     }
-    res.json(result);
+    res.status(200).json(result);
   },
 
   async logout(req, res, next) {

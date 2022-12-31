@@ -11,7 +11,12 @@ const professionInfoSchema = new Schema(
   {
     experience_year: { type: Number },
     experience_note: { type: String },
+    verification_status: { type: String, default: "pending" },
     qualification: [QualificationSchema],
+    verification_process: {
+      document: { type: String },
+      reason: { type: String },
+    },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }

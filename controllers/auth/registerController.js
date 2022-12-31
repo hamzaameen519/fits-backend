@@ -1,7 +1,7 @@
 import Joi, { ref } from "joi";
 import bcrypt from "bcrypt";
-import CustomErrorHandler from "../../services/CustomErrorHandler";
-import registerSchema from "../../validators/registerValidator";
+import CustomErrorHandler from "../../services/CustomErrorHandler.js";
+import registerSchema from "../../validators/registerValidator.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -43,6 +43,15 @@ const registerController = {
     // if (req.file) {
     //   filePath = req.file.path;
     // }
+    // validation for special character
+    var regex = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/;
+    if (!regex.test(req.body.password)) {
+      return next(
+        CustomErrorHandler.validation(
+          "Password must be at least one special character"
+        )
+      );
+    }
     // validation
     const { error } = registerSchema.validate(req.body);
 
@@ -51,16 +60,18 @@ const registerController = {
     }
 
     // check if user exist in database already
-    // try {
-    //   const exist = await User.exists({ email: req.body.email });
-    //   if (exist) {
-    //     return next(
-    //       CustomErrorHandler.alreadyExist("This email is already taken.")
-    //     );
-    //   }
-    // } catch (err) {
-    //   return next(err);
-    // }
+    try {
+      const exist = await User.exists({ email: req.body.email });
+      if (exist) {
+        return next(
+          CustomErrorHandler.alreadyExist(
+            "Already Have An Account, Please SignIn!"
+          )
+        );
+      }
+    } catch (err) {
+      return next(err);
+    }
 
     const { email, password, role } = req.body;
 
@@ -80,7 +91,7 @@ const registerController = {
     try {
       data = await user.save();
       email_message = await SendGridService.sendEmail(req.body.email, next);
-
+      console.log("email_message", email_message);
       // Token
       access_token = JwtServices.sign({ _id: data._id, role: data.role });
     } catch (err) {

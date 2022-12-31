@@ -63,6 +63,8 @@ const sessionSchema = new Schema(
       default:
         "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?crop=entropy&cs=tinysrgb&fm=jpg&ixlib=rb-1.2.1&q=80&raw_url=true&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=870",
     },
+    numReviews: { type: Number, default: 0 },
+    averageRating: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

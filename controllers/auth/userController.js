@@ -1,23 +1,38 @@
-import { OAuth2Client } from "google-auth-library";
-import { API_KEY } from "../../config";
-import { User } from "../../models";
-import sgMail from "@sendgrid/mail";
+import { Personal, User } from "../../models";
 import CustomErrorHandler from "../../services/CustomErrorHandler";
 import Otp from "../../models/otp";
 import bcrypt from "bcrypt";
 import SendGridService from "../../services/SendGridService";
+import { successResponse } from "../../utils/response";
+import { HTTP_STATUS } from "../../utils/constants";
 
 const userController = {
   async me(req, res, next) {
-    try {
-      const user = await User.findOne({ _id: req.user._id }).select(
-        "-password -updatedAt -__v"
-      );
-      if (!user) {
-        return next(CustomErrorHandler.notFound());
-      }
+    let documents,
+      userPersonal,
+      // userFitness,
+      user;
 
-      res.json(user);
+    // for trainer profiles steps
+
+    // for trainee profiles steps
+
+    try {
+      user = await User.findById({ _id: req.user._id }).select(
+        "-password -__v -updatedAt"
+      );
+
+      if (user) {
+        userPersonal = await Personal.findOne({
+          user: user._id,
+        });
+        // PROFILE COMPLETE STEPS
+      }
+      documents = {
+        user: user,
+        personal_info: userPersonal,
+      };
+      return successResponse(res, next, documents, HTTP_STATUS.OK, "found");
     } catch (err) {
       return next(err);
     }
@@ -31,12 +46,11 @@ const userController = {
       })
         .limit(1)
         .sort({ $natural: -1 });
-
       if (data) {
         const date = new Date();
         const currenTime = date.getTime();
 
-        console.log("db expireIn", data.expireIn);
+        // console.log("db expireIn", data.expireIn);
         const diff = data.expireIn - currenTime;
 
         if (diff < 0) {
@@ -62,7 +76,9 @@ const userController = {
           res.status(201).json({ message: "verified" });
         }
       } else {
-        return next(CustomErrorHandler.notFound("verification code incorrect"));
+        return next(
+          CustomErrorHandler.wrongCredentials("verification code incorrect")
+        );
       }
     } catch (error) {
       return next(error);
@@ -71,8 +87,17 @@ const userController = {
 
   // otp send in email (one time password ) for verification
   async emailSend(req, res, next) {
+    let message;
     const response = await SendGridService.sendEmail(req.body.email, next);
-    res.status(201).json(response);
+    console.log("response:", response);
+    successResponse(
+      res,
+      next,
+      response,
+      HTTP_STATUS.CREATED,
+      "send code successfully"
+    );
+    // res.status(201).json(response);
   },
 
   // otp resend in email (one time password ) for verification

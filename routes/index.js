@@ -4,14 +4,7 @@ import {
   registerController,
   loginController,
   userController,
-  productController,
-  categoryController,
-  orderController,
-  adminOrderController,
-  statusController,
   profileController,
-  dashboardController,
-  challengeController,
   personalController,
   professionController,
   fitnessController,
@@ -22,13 +15,24 @@ import {
   customerController,
   cardController,
   serviceController,
+  goalController,
   userMeController,
   usersController,
   rechargeController,
   transferController,
-} from "../controllers";
-import auth from "../middlewares/auth";
-import admin from "../middlewares/admin";
+  bankController,
+  bookingController,
+  messageController,
+  filterController,
+  dashboardController,
+  connectController,
+  subscriptionController,
+} from "../controllers/index.js";
+import auth from "../middlewares/auth.js";
+import admin from "../middlewares/admin.js";
+import trainee from "../middlewares/trainee.js";
+import trainer from "../middlewares/trainer.js";
+import role from "../middlewares/role.js";
 
 //Change password
 router.post("/email-send", userController.emailSend);
@@ -37,7 +41,7 @@ router.post("/code-verify", userController.codeVerify);
 router.post("/change-password", userController.changePassword);
 
 // Auth Routes
-router.post("/register", registerController.register);
+router.post("/register", role, registerController.register);
 router.post("/login", loginController.login);
 router.get("/me", auth, userController.me);
 router.post("/logout", auth, loginController.logout);
@@ -45,6 +49,7 @@ router.get("/users", auth, userController.index);
 //all user data profession info && personal info && user info
 
 router.get("/user/me/:userId", [auth], userMeController.show);
+router.get("/user/:userId", [auth], userMeController.showAdmin);
 
 // profile update routes
 router.put("/profile/edit/name/:id", auth, profileController.editName);
@@ -52,35 +57,6 @@ router.put("/profile/edit/email/:id", auth, profileController.editEmail);
 router.put("/profile/edit/phone/:id", auth, profileController.editPhone);
 router.put("/profile/edit/password/:id", auth, profileController.editPassword);
 
-// Products Routes
-router.post("/products", [auth, admin], productController.store);
-router.put("/products/:id", [auth, admin], productController.update);
-router.delete("/products/:id", [auth, admin], productController.destroy);
-router.get("/products", productController.index);
-router.get("/products/:id", productController.show);
-
-// Category Routes
-router.post("/categories", [auth, admin], categoryController.store);
-router.put("/categories/:id", [auth, admin], categoryController.update);
-router.delete("/categories/:id", [auth, admin], categoryController.destroy);
-router.get("/categories", categoryController.index);
-router.get("/categories/:id", categoryController.show);
-router.get("/category/products", categoryController.products);
-
-// Orders Routes
-router.post("/orders", [auth, admin], orderController.store);
-router.get("customer/orders", [auth], orderController.index);
-router.get("customer/orders/:id", [auth], orderController.show);
-router.get("/orders", [auth, admin], adminOrderController.index);
-router.get("/records/total", [auth, admin], dashboardController.index);
-
-// Status Route
-router.post("/admin/order/status", [auth, admin], statusController.update);
-
-// challenges Route
-router.post("/challenges", [auth, admin], challengeController.store);
-router.get("/challenges", [auth, admin], challengeController.index);
-router.delete("/challenges/:id", [auth, admin], challengeController.destroy);
 // personal Info Route
 router.post("/personal", [auth], personalController.store);
 router.put("/personal/:id", [auth], personalController.update);
@@ -94,7 +70,17 @@ router.post("/profession", [auth], professionController.store);
 router.put("/profession/:id", [auth], professionController.update);
 router.get("/profession", [auth], professionController.index);
 router.get("/profession/:userId", [auth], professionController.show);
-
+router.put(
+  "/profession/verification/:id",
+  [auth],
+  professionController.updateVerificationProcess
+);
+// Orders Routes
+// router.post("/orders", [auth, admin], orderController.store);
+// router.get("customer/orders", [auth], orderController.index);
+// router.get("customer/orders/:id", [auth], orderController.show);
+// router.get("/orders", [auth, admin], adminOrderController.index);
+router.get("/records/total", [auth, admin], dashboardController.index);
 //fitness Route
 router.post("/fitness", [auth], fitnessController.store);
 router.put("/fitness/:id", [auth], fitnessController.update);
@@ -107,11 +93,35 @@ router.put("/user/role/update/:id", [auth], userController.updateRole);
 router.post("/classes", [auth], classesController.store);
 
 //session
-router.post("/session/book-a-session", [auth], sessionController.store);
+router.post("/session", [auth], sessionController.store);
 // router.put("/session/book-a-session/:id", [auth], sessionController.update);
-router.delete("/session/book-a-session/:id", [auth], sessionController.destroy);
-router.get("/session/book-a-session/:id", [auth], sessionController.show);
-router.get("/session/book-a-session", [auth], sessionController.index);
+router.delete("/session/:id", [auth], sessionController.destroy);
+router.get("/session/:id", [auth], sessionController.show);
+router.get("/session", [auth], sessionController.index);
+router.get("/session/trainer/:id", [auth], sessionController.getByTrainerId);
+
+// book a session apis endpoint
+router.post("/book-a-session", [auth, trainee], bookingController.store);
+router.get(
+  "/book-a-session/trainer/:id",
+  [auth, trainer],
+  bookingController.getByTrainerId
+);
+router.get(
+  "/book-a-session/trainee/:id",
+  [auth, trainee],
+  bookingController.getByTraineeId
+);
+router.delete(
+  "/book-a-session/trainee/:id",
+  [auth],
+  bookingController.destroyTrainee
+);
+router.delete(
+  "/book-a-session/trainer/:id",
+  [auth],
+  bookingController.destroyTrainer
+);
 
 // service
 router.post("/services", [auth], serviceController.store);
@@ -120,13 +130,29 @@ router.delete("/services/:id", [auth], serviceController.destroy);
 router.get("/services/:id", [auth], serviceController.show);
 router.get("/services", [auth], serviceController.index);
 
+// goals
+router.post("/goals", [auth], goalController.store);
+router.put("/goals/:id", [auth], goalController.update);
+router.delete("/goals/:id", [auth], goalController.destroy);
+router.get("/goals/:id", [auth], goalController.show);
+router.get("/goals", [auth], goalController.index);
+
 //video create
 router.post("/video", [auth], videoController.store);
 router.get("/video", [auth], videoController.index);
 
+//subscription videos
+router.post("/subscription/videos", [auth], subscriptionController.store);
+router.get("/subscription/videos", [auth], subscriptionController.index);
+router.get("/subscription/videos/:userId", [auth], subscriptionController.show);
+
 //review
-router.post("/review/:id", [auth], reviewController.store);
+router.post("/review", [auth], reviewController.store);
 router.get("/review/:id", [auth], reviewController.show);
+
+// filter record api
+router.put("/filter", [auth], filterController.filter);
+router.put("/search", [auth], filterController.search);
 
 //all Users
 router.get("/admin/users", [auth, admin], usersController.index);
@@ -141,6 +167,15 @@ router.put(
   usersController.updateTrainerStatus
 );
 
+// ---------------------Begin: all chat routes goes here-------------------
+
+router.post("/chat/room/create", [auth, trainee], messageController.createRoom);
+router.post("/chat/rooms", [auth], messageController.getAllMyRooms);
+router.post("/chat/message/create", [auth], messageController.sendMessage);
+router.get("/chat/message/:roomId", [auth], messageController.index);
+
+// ----------------------End: all chat routes goes here--------------------
+
 // All Stripe Routes goes here
 
 // stripe customer endpoints
@@ -149,20 +184,51 @@ router.delete("/stripe/customer/:id", [auth], customerController.destroy);
 router.get("/stripe/customer/:id", [auth], customerController.show);
 router.get("/stripe/customer", [auth], customerController.index);
 router.put("/stripe/customer/:id", [auth], customerController.update);
+router.post(
+  "/stripe/customer/checkBalanceTransactions/:id",
+  [auth],
+  customerController.checkBalanceTransactions
+);
+router.post(
+  "/stripe/customer/BalanceTransactionDetail/:cus_id",
+  [auth],
+  customerController.BalanceTransactionDetail
+);
+router.get(
+  "/stripe/balance_transaction/:cus_id/:balance_tr_id",
+  [auth],
+  customerController.balance
+);
+//customer stripe balance check
+router.get("/stripe/balance/:cus_id", [auth], customerController.checkBalance);
 
 // stripe customer card  endpoints
 router.post("/stripe/card/:id", [auth], cardController.store); //create a card token and card
 router.delete("/stripe/card/:id", [auth], cardController.destroy);
-router.get("/stripe/card/:id", [auth], cardController.show);
+router.post("/stripe/customer/card/:id", [auth], cardController.show);
 // router.get("/stripe/card", [auth], cardController.index);
 router.put("/stripe/card/:id", [auth], cardController.update);
 
 // stripe customer recharge endpoints
-router.post("/stripe/recharge", [auth], rechargeController.store);
-router.get("/stripe/recharge", [auth], rechargeController.show);
+router.post("/stripe/recharge/:cus_id", [auth], rechargeController.store);
+router.get("/stripe/recharge/:id", [auth], rechargeController.show);
+router.put("/stripe/recharge/:id", [auth], rechargeController.update);
 // stripe customer transfer amount endpoints
 router.post("/stripe/transfer", [auth], transferController.store);
 router.get("/stripe/transfer", [auth], transferController.show);
+router.post("/stripe/transfer_pay/:id", transferController.transfer);
+//stripe bank_account create
+router.post("/stripe/bank_account/:cus_id", bankController.store);
+router.get("/stripe/bank_account/:cus_id", [auth], bankController.show);
+
+// stripe connect account
+
+router.get(
+  "/stripe/connect/accountLink",
+  auth,
+  connectController.createExpressAccountLink
+);
+
 //account verify admin
 // router.post("/admin/accountVerify", accountVerifiedController.store);
 // classes

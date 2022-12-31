@@ -1,10 +1,9 @@
-// import { Order } from "../../models";
 import { User } from "../../models";
 import CustomErrorHandler from "../../services/CustomErrorHandler";
+import { HTTP_STATUS } from "../../utils/constants";
 const usersController = {
   async index(req, res, next) {
     let documents;
-    let ids = [];
 
     try {
       documents = await User.find({ role: { $ne: "admin" } }).select(
@@ -14,7 +13,7 @@ const usersController = {
       return next(CustomErrorHandler.serverError());
     }
     console.log("users", documents);
-    res.status(201).json(documents);
+    res.status(HTTP_STATUS.OK).json(documents);
   },
   async updateAccountStatus(req, res, next) {
     let documents;
@@ -28,8 +27,7 @@ const usersController = {
     } catch (err) {
       return next(CustomErrorHandler.serverError());
     }
-    console.log("user update", documents);
-    res.status(201).json(documents);
+    res.status(HTTP_STATUS.CREATED).json(documents);
   },
   async updateTrainerStatus(req, res, next) {
     let documents;
@@ -43,8 +41,7 @@ const usersController = {
     } catch (err) {
       return next(CustomErrorHandler.serverError());
     }
-    console.log("user update", documents);
-    res.status(201).json(documents);
+    res.status(HTTP_STATUS.CREATED).json(documents);
   },
 };
 export default usersController;

@@ -5,4 +5,5 @@ module.exports = {
   REFRESH_SECRET: process.env.REFRESH_SECRET,
   APP_URL: process.env.APP_URL,
   API_KEY: process.env.API_KEY,
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
 };

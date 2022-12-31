@@ -7,6 +7,8 @@ const profileSchema = Joi.object({
   state: Joi.string().required(),
   gender: Joi.string().required(),
   city: Joi.string().required(),
+  profileImage: Joi.string().required(),
+  phoneNumber: Joi.number().required(),
 });
 
 export default profileSchema;

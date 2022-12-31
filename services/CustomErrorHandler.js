@@ -17,8 +17,8 @@ class CustomErrorHandler extends Error {
     return new CustomErrorHandler(401, message);
   }
 
-  static notFound(message = "404 not found") {
-    return new CustomErrorHandler(404, message);
+  static notFound(message = "404 not found", statusCode = 404) {
+    return new CustomErrorHandler(statusCode, message);
   }
 
   static serverError(message = "Internal server error") {
@@ -26,6 +26,9 @@ class CustomErrorHandler extends Error {
   }
   static emptyState(message = "req is empty and not found") {
     return new CustomErrorHandler(500, message);
+  }
+  static validation(message = "missing characters") {
+    return new CustomErrorHandler(422, message);
   }
 }
 

@@ -9,11 +9,6 @@ const videoSchema = new Schema(
       ref: "User",
       required: true,
     },
-    sessionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Session",
-      required: true,
-    },
     topic: { type: String },
     video_links: {
       type: Array,
@@ -27,6 +22,8 @@ const videoSchema = new Schema(
     price: {
       type: Number,
     },
+    numReviews: { type: Number, default: 0 },
+    averageRating: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

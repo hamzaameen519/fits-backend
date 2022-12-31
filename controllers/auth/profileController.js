@@ -1,4 +1,4 @@
-import { User } from "../../models";
+import { Personal, User } from "../../models";
 import Joi, { ref } from "joi";
 import bcrypt from "bcrypt";
 import CustomErrorHandler from "../../services/CustomErrorHandler";
@@ -25,7 +25,7 @@ const userController = {
     let document;
 
     try {
-      document = await User.findOneAndUpdate(
+      document = await Personal.findByIdAndUpdate(
         { _id: req.params.id },
         {
           name,
@@ -54,7 +54,7 @@ const userController = {
     let document;
 
     try {
-      document = await User.findOneAndUpdate(
+      document = await User.findByIdAndUpdate(
         { _id: req.params.id },
         {
           email,
@@ -74,7 +74,7 @@ const userController = {
     let document;
 
     try {
-      document = await User.findOneAndUpdate(
+      document = await User.findByIdAndUpdate(
         { _id: req.params.id },
         {
           phone,
@@ -90,25 +90,48 @@ const userController = {
 
   // Edit Password
   async editPassword(req, res, next) {
-    // Validation
+    // check if user exist in database already
+    let user, document;
+    const { oldPassword, password } = req.body;
+    if (!oldPassword || !password) {
+      return next(
+        CustomErrorHandler.wrongCredentials("password or old password missing!")
+      );
+    }
 
-    const { password } = req.body;
-    let document;
-    // Hash Password
-    const hashedPassword = await bcrypt.hash(password, 10); // 10 is salt rounds
     try {
+      user = await User.findById({ _id: req.params.id });
+
+      if (!user) {
+        return next(CustomErrorHandler.wrongCredentials("User doesn't exist!"));
+      }
+
+      // compare password
+      const match = await bcrypt.compare(oldPassword, user.password);
+
+      if (!match) {
+        return next(CustomErrorHandler.wrongCredentials("wrong password"));
+      }
+
+      // Hash Password
+      const hashedPassword = await bcrypt.hash(password, 10); // 10 is salt rounds
       document = await User.findOneAndUpdate(
         { _id: req.params.id },
         {
           password: hashedPassword,
         },
         { new: true }
-      );
+      ).select("-__v -updatedAt -password");
     } catch (err) {
       return next(err);
     }
 
-    res.status(201).json(document);
+    return res.status(200).json({
+      message: "Password updated successfully...",
+      statusCode: 200,
+      success: true,
+      data: document,
+    });
   },
 };
 

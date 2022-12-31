@@ -1,5 +1,4 @@
 import { Fitness, User } from "../models";
-import mongoose from "mongoose";
 import fitnessSchema from "../validators/fitnessSchema";
 
 const fitnessController = {
@@ -18,11 +17,16 @@ const fitnessController = {
       fitness;
 
     try {
-      fitness = await Fitness.create({
-        fitness_level,
-        fitness_goal,
-        services_offered,
-      });
+      console.log("req.userId", req.user._id);
+      fitness = await Fitness.create(
+        {
+          fitness_level,
+          fitness_goal,
+          services_offered,
+          user: req.user._id,
+        },
+        { new: true }
+      );
       if (fitness) {
         success = true;
         statusCode = 201;
@@ -48,20 +52,20 @@ const fitnessController = {
   //update fitness info
   async update(req, res, next) {
     // validation
-    const { error } = fitnessSchema.validate(req.body);
-    if (error) {
-      return next(error);
-    }
+    // const { error } = fitnessSchema.validate(req.body);
+    // if (error) {
+    //   return next(error);
+    // }
     const { fitness_level, fitness_goal, services_offered } = req.body;
-
+    console.log("fitenesslevel", fitness_level, services_offered);
     let document,
       success,
       message = "",
       statusCode,
-      fitness;
+      getFitness;
 
     try {
-      fitness = await Fitness.findOneAndUpdate(
+      getFitness = await User.findByIdAndUpdate(
         { _id: req.params.id },
         {
           fitness_level,
@@ -71,7 +75,9 @@ const fitnessController = {
         },
         { new: true }
       );
-      if (fitness) {
+      console.log("getFitness", getFitness);
+
+      if (getFitness) {
         success = true;
         statusCode = 200;
         message = "particular fitness info updated successfully";
@@ -87,7 +93,7 @@ const fitnessController = {
       statusCode,
       success,
       message,
-      data: fitness,
+      data: getFitness,
     };
 
     res.status(statusCode).json(document);
@@ -95,11 +101,6 @@ const fitnessController = {
 
   // choose fitness level and goal
   async chooseFitness(req, res, next) {
-    // validation
-    const { error } = fitnessSchema.validate(req.body);
-    // if (error) {
-    //   return next(error);
-    // }
     const { fitness_level, fitness_goal, services_offered } = req.body;
 
     let document,
@@ -122,13 +123,15 @@ const fitnessController = {
         services_offered,
       };
     } else {
-      return next(error);
+      return next("error");
     }
 
     try {
+      console.log("user", user);
       fitness = await User.findByIdAndUpdate({ _id: req.params.id }, user, {
         new: true,
       });
+      console.log("fitness", fitness);
       if (fitness) {
         success = true;
         statusCode = 200;

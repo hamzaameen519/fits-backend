@@ -1,40 +1,71 @@
 import CustomErrorHandler from "../../services/CustomErrorHandler";
-const stripe = require("stripe")(
-  "sk_test_51Ke1KTHjHBX7BsTL075YAHuruUm8Axbhg4pCx2ac7BzYGA12vk5tvAf2iUhG6qSgMIFAm1nslPxDRatuF96VRLcv00BUgmqIlW"
-);
+import { STRIPE_SECRET_KEY } from "../../config";
+import { errorResponse } from "../../utils/response";
+import { HTTP_STATUS } from "../../utils/constants";
+import { Payment } from "../../models";
+const stripe = require("stripe")(STRIPE_SECRET_KEY);
+
 const transferController = {
   //create customers
   async store(req, res, next) {
     let documents;
-    console.log("admin controller");
+
     const { sender, reciver, currency, amount, subamount } = req.body;
     try {
       if (!sender || !reciver || !currency || !amount || !subamount) {
         res.status(500).json("Please add all requirements");
       }
+
       const balanceTransaction =
         await stripe.customers.createBalanceTransaction(sender, {
           amount: amount,
           currency: currency,
         });
-      const balanceReciver = await stripe.customers.createBalanceTransaction(
+      let balanceReciver = await stripe.customers.createBalanceTransaction(
         reciver,
         { amount: subamount, currency: currency }
       );
-      res
-        .status(200)
-        .json({ reciver: balanceReciver, sender: balanceTransaction });
+      const updateTransfer = await Payment.findOneAndUpdate(
+        { cus_id: sender },
+        {
+          $push: {
+            trnsactions: {
+              reciver: balanceReciver,
+              sender: balanceTransaction,
+            },
+          },
+        },
+        { new: true }
+      );
+      const updateReciver = await Payment.findOneAndUpdate(
+        { cus_id: reciver },
+        {
+          $push: {
+            trnsactions: {
+              reciver: balanceReciver,
+              sender: balanceTransaction,
+            },
+          },
+        },
+        { new: true }
+      );
+      if (updateTransfer && updateReciver) {
+        res.status(200).json({
+          reciver: balanceReciver,
+          sender: balanceTransaction,
+        });
+      } else {
+        return errorResponse(res, HTTP_STATUS.BAD_GATEWAY, "error in update");
+      }
     } catch (err) {
       return next(CustomErrorHandler.serverError());
     }
-    console.log("users", documents);
     res.status(201).json(documents);
   },
 
   //get particular customer
   async show(req, res, next) {
     let documents;
-    console.log("hello", req.params.id);
     try {
       if (req.params.id) {
         documents = await stripe.customers.retrieve(req.params.id);
@@ -44,12 +75,21 @@ const transferController = {
     } catch (err) {
       return next(CustomErrorHandler.serverError());
     }
-    console.log("users", documents);
     res.status(201).json(documents);
+  },
+
+  async transfer(req, res, next) {
+    const { amount, currency } = req.body;
+    const transferPayment = await stripe.transfers.create({
+      amount: amount,
+      currency: currency,
+      destination: req.params.id,
+      // transfer_group: "ORDER_95",
+    });
+    res.status(201).json(transferPayment);
   },
   async update(req, res, next) {
     let documents;
-    console.log("admin controller");
     try {
       documents = await stripe.customers.update(req.params.id, {
         balance: req.body.balance,
@@ -57,7 +97,6 @@ const transferController = {
     } catch (err) {
       return next(CustomErrorHandler.serverError());
     }
-    console.log("user update", documents);
     res.status(201).json(documents);
   },
 };

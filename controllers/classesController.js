@@ -1,4 +1,3 @@
-import errorHandler from "../middlewares/errorHandler";
 import { Classes } from "../models";
 import CustomErrorHandler from "../services/CustomErrorHandler";
 import classesSchema from "../validators/classesSchema";

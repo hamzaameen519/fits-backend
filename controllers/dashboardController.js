@@ -1,50 +1,27 @@
-import { Order, Transaction, User, Product } from "../models";
-const moment = require("moment");
+import { Session, User, Booking } from "../models";
 
 const dashboardController = {
   async index(req, res, next) {
-    var start = moment().startOf("day"); // set to 12:00 am today
-    var end = moment().endOf("day"); // set to 23:59 pm today
+    // var start = moment().startOf("day"); // set to 12:00 am today
+    // var end = moment().endOf("day"); // set to 23:59 pm today
 
-    console.log("start day", start);
-    console.log("end day", end);
+    // console.log("start day", start);
+    // console.log("end day", end);
     try {
-      const user = await User.find().count();
-      const order = await Order.find().count();
-      const completedOrder = await Order.find({ status: "completed" }).count();
-      const todayOrder = await Order.find({
-        createdAt: { $gte: start, $lt: end },
-      }).count();
-      const product = await Product.find().count();
-      console.log("User", user);
-
-      const averageCompletedOrders = order / completedOrder;
-      console.log("averageCompletedOrders", averageCompletedOrders);
-      // if (!user ) {
-      //   return res.status(404).json({ message: "404 not found" });
-      // }
-      // if (!user) {
-      //   return res.status(404).json({ message: "404 not found" });
-      // }
-      // if (!user) {
-      //   return res.status(404).json({ message: "404 not found" });
-      // }
+      const trainer = await User.find({ role: "trainer" }).count();
+      const trainee = await User.find({ role: "trainee" }).count();
+      const session = await Session.find().count();
+      const bookings = await Booking.find().count();
 
       const result = {
         status: true,
         users: {
-          total: user,
+          trainer,
+          trainee,
         },
-        products: {
-          total: product,
-        },
-        orders: {
-          total: {
-            orders: order,
-            completed: completedOrder,
-            today: todayOrder,
-          },
-          averageCompleted: averageCompletedOrders,
+        sessions: {
+          total: session,
+          booked: bookings,
         },
       };
 
@@ -52,7 +29,7 @@ const dashboardController = {
       res.json(result);
     } catch (err) {
       console.log("catch wala error", err);
-      res.json({ error });
+      res.json({ err });
     }
 
     // const order = new Order({

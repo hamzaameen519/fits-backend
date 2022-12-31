@@ -1,51 +1,117 @@
 import CustomErrorHandler from "../../services/CustomErrorHandler";
-const stripe = require("stripe")(
-  "sk_test_51Ke1KTHjHBX7BsTL075YAHuruUm8Axbhg4pCx2ac7BzYGA12vk5tvAf2iUhG6qSgMIFAm1nslPxDRatuF96VRLcv00BUgmqIlW"
-);
+import { STRIPE_SECRET_KEY } from "../../config";
+import { User } from "../../models";
+import { errorResponse, successResponse } from "../../utils/response";
+import { HTTP_STATUS } from "../../utils/constants";
+import { customerController } from "..";
+const stripe = require("stripe")(STRIPE_SECRET_KEY);
+
 const rechargeController = {
   //create customers
   async store(req, res, next) {
-    let documents;
-    console.log("admin controller");
-    const { amount, currency, source, description } = req.body;
+    let documents, user, charge;
+    const { amount, currency, description, source } = req.body;
     try {
-      if (!amount || !currency || !source || !description) {
-        res.status(500).json("Please add all requirements");
+      if (!amount || !currency || !description) {
+        res.status(422).json("Please add all requirements");
       }
-      documents = await stripe.charges.create({
-        amount: amount,
-        currency: currency,
-        // source: source,
-        source: "source",
-        description: description,
-      });
-      res.status(200).json(charge);
+      // if (req.params.cus_id && source) {
+      //   documents = await stripe.customers.retrieveSource(
+      //     req.params.cus_id,
+      //     source
+      //   );
+      //   console.log("documents", documents);
+      // }
+      // await stripe.tokens
+      //   .create({
+      //     card: {
+      //       number: 5354564604377230,
+      //       exp_month: documents.exp_month,
+      //       exp_year: documents.exp_year,
+      //       cvc: documents.cvc,
+      //     },
+      //   })
+      // .then(async (response) => {
+      //   console.log("res", response);
+      //   console.log("res", response.id);
+      if (source) {
+        // const response = await stripe.customers.createSource(
+        //   req.params.cus_id,
+        //   {
+        //     source: source,
+        //   }
+        // );
+        // console.log("data.......", data);
+        charge = await stripe.charges.create({
+          amount: amount * 100,
+          currency: currency,
+          customer: req.params.cus_id,
+          source: source,
+          description: description,
+        });
+        if (charge) {
+          const getUser = await User.findById({ _id: req.user._id });
+          const sum = getUser.amount + amount;
+          const updateUserAmount = await User.findByIdAndUpdate(
+            { _id: req.user._id },
+            { amount: sum }
+          );
+
+          if (updateUserAmount) {
+            stripe.customers
+              .update(req.params.cus_id, {
+                balance: sum,
+              })
+              .then((resp) => {
+                return successResponse(
+                  res,
+                  next,
+                  charge,
+                  HTTP_STATUS.OK,
+                  "create successfully"
+                );
+              });
+          } else {
+            return errorResponse(
+              res,
+              HTTP_STATUS.NOT_MODIFIED,
+              "Payment not update in db",
+              null
+            );
+          }
+        } else {
+          return errorResponse(
+            res,
+            HTTP_STATUS.BAD_GATEWAY,
+            "stripe charge api not working properly",
+            null
+          );
+        }
+      }
+      // });
     } catch (err) {
-      return next(CustomErrorHandler.serverError());
+      errorResponse(res, HTTP_STATUS.NOT_FOUND, err.message, null);
     }
-    console.log("users", documents);
-    res.status(201).json(documents);
   },
 
   //get particular customer
   async show(req, res, next) {
     let documents;
-    console.log("hello", req.params.id);
     try {
       if (req.params.id) {
-        documents = await stripe.customers.retrieve(req.params.id);
+        documents = await stripe.customers.retrieve(req.params.id, {
+          expend: ["default_source"],
+        });
       } else {
         return next(CustomErrorHandler.emptyState());
       }
     } catch (err) {
       return next(CustomErrorHandler.serverError());
     }
-    console.log("users", documents);
     res.status(201).json(documents);
   },
   async update(req, res, next) {
     let documents;
-    console.log("admin controller");
     try {
       documents = await stripe.customers.update(req.params.id, {
         balance: req.body.balance,
@@ -53,7 +119,6 @@ const rechargeController = {
     } catch (err) {
       return next(CustomErrorHandler.serverError());
     }
-    console.log("user update", documents);
     res.status(201).json(documents);
   },
 };

@@ -1,4 +1,7 @@
-import { Profession } from "../models";
+import { Profession, User } from "../models";
+import { HTTP_STATUS } from "../utils/constants";
+import { errorResponse, successResponse } from "../utils/response";
+import { isObjectEmpty } from "../utils/utility";
 import professionSchema from "../validators/professionSchema";
 
 const professionController = {
@@ -24,6 +27,13 @@ const professionController = {
         user: req.user._id,
       });
       if (profession) {
+        await User.findOneAndUpdate(
+          { _id: req.user._id },
+          {
+            profession: profession._id,
+          },
+          { new: true }
+        );
         (message = "create profession info successfully"),
           (statusCode = 201),
           (success = true);
@@ -97,16 +107,13 @@ const professionController = {
 
   //update profile info
   async update(req, res, next) {
-    // Multipart from data
-    // handleMultipartData(req, res, async (err) => {
-
     // validation
     const { error } = professionSchema.validate(req.body);
     if (error) {
       return next(error);
     }
     const { experience_year, experience_note, qualification } = req.body;
-
+    console.log("profession", experience_year, experience_note, qualification);
     let document,
       success,
       message = "",
@@ -114,16 +121,17 @@ const professionController = {
       profession;
 
     try {
-      profession = await Profession.findOneAndUpdate(
+      profession = await Profession.findByIdAndUpdate(
         { _id: req.params.id },
         {
-          experience_year,
-          experience_note,
-          qualification,
-          user: req.user._id,
+          experience_year: experience_year,
+          experience_note: experience_note,
+          qualification: qualification,
+          // user: req.user._id,
         },
         { new: true }
       );
+      console.log("profession", profession);
 
       if (profession) {
         success = true;
@@ -141,6 +149,49 @@ const professionController = {
         profession: profession,
       };
       res.status(statusCode).json(document);
+    } catch (err) {
+      return next(err);
+    }
+  },
+
+  //update verification process
+  async updateVerificationProcess(req, res, next) {
+    let profession;
+    const { verification } = req.body;
+    console.log("first,", verification);
+    // validation
+    if (isObjectEmpty(verification) && !verification.document) {
+      return errorResponse(
+        res,
+        HTTP_STATUS.NOT_ACCEPTABLE,
+        "Verification Document Is Missing!"
+      );
+    }
+
+    try {
+      profession = await Profession.findOneAndUpdate(
+        { user: req.params.id },
+        {
+          verification_process: verification,
+          verification_status: "verified",
+        },
+        { new: true }
+      );
+
+      if (!profession) {
+        return errorResponse(
+          res,
+          HTTP_STATUS.NOT_FOUND,
+          "Verification Process Not Added!"
+        );
+      }
+      return successResponse(
+        res,
+        next,
+        { profession },
+        HTTP_STATUS.CREATED,
+        "Verification Process Added Successfully!"
+      );
     } catch (err) {
       return next(err);
     }
